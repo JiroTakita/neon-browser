@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Neon Browser</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      overflow: hidden;
+      background: #1e1e2e;
+      color: #cdd6f4;
+    }
+
+    #toolbar {
+      height: 50px;
+      background: #181825;
+      display: flex;
+      align-items: center;
+      padding: 0 10px;
+      gap: 8px;
+      border-bottom: 1px solid #313244;
+    }
+
+    #tabs {
+      height: 30px;
+      background: #181825;
+      display: flex;
+      align-items: center;
+      padding: 0 5px;
+      gap: 2px;
+      border-bottom: 1px solid #313244;
+      overflow-x: auto;
+    }
+
+    .tab {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 12px;
+      background: #313244;
+      color: #cdd6f4;
+      border-radius: 4px 4px 0 0;
+      cursor: pointer;
+      max-width: 200px;
+      min-width: 120px;
+      transition: background 0.2s;
+    }
+
+    .tab:hover {
+      background: #45475a;
+    }
+
+    .tab.active {
+      background: #ffffff;
+      color: #000000;
+    }
+
+    .tab-title {
+      flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-size: 12px;
+    }
+
+    .tab-close {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      cursor: pointer;
+      background: transparent;
+      color: #bac2de;
+    }
+    
+    .tab.active .tab-close {
+      color: #666666;
+    }
+
+    .tab-close:hover {
+      background: #f38ba8;
+      color: #1e1e2e;
+    }
+
+    .new-tab-btn {
+      width: 24px;
+      height: 24px;
+      border-radius: 4px;
+      background: #313244;
+      color: #cdd6f4;
+      border: none;
+      cursor: pointer;
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s;
+    }
+
+    .new-tab-btn:hover {
+      background: #45475a;
+    }
+
+    button {
+      background: #313244;
+      border: none;
+      color: #cdd6f4;
+      padding: 8px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background 0.2s;
+    }
+
+    button:hover {
+      background: #45475a;
+    }
+
+    button:active {
+      background: #585b70;
+    }
+
+    #url-bar {
+      flex: 1;
+      padding: 8px 12px;
+      background: #313244;
+      border: 1px solid #45475a;
+      border-radius: 4px;
+      color: #cdd6f4;
+      font-size: 14px;
+      outline: none;
+    }
+
+    #url-bar:focus {
+      border-color: #89b4fa;
+      background: #45475a;
+    }
+
+    #notification {
+      position: fixed;
+      top: 90px;
+      right: 20px;
+      background: #f38ba8;
+      color: #1e1e2e;
+      padding: 12px 20px;
+      border-radius: 6px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      opacity: 0;
+      transform: translateY(-20px);
+      transition: all 0.3s;
+      pointer-events: none;
+      z-index: 1000;
+      font-weight: 500;
+    }
+
+    #notification.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .private-mode-indicator {
+      background: #a6e3a1;
+      color: #1e1e2e;
+      padding: 4px 12px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 600;
+      display: none;
+    }
+
+    .private-mode-indicator.active {
+      display: block;
+    }
+
+    .nav-buttons {
+      display: flex;
+      gap: 4px;
+    }
+
+    .icon-btn {
+      width: 32px;
+      height: 32px;
+      padding: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+    }
+    
+    #private-mode-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 8px;
+    }
+    
+    #private-mode-btn svg {
+      fill: #cdd6f4;
+      width: 18px;
+      height: 18px;
+    }
+    
+    #private-mode-btn.active svg {
+      fill: #a6e3a1;
+    }
+  </style>
+</head>
+<body>
+  <div id="tabs">
+    <button class="new-tab-btn" id="new-tab-btn">+</button>
+  </div>
+  <div id="toolbar">
+    <div class="nav-buttons">
+      <button class="icon-btn" id="back-btn">←</button>
+      <button class="icon-btn" id="forward-btn">→</button>
+      <button class="icon-btn" id="reload-btn">↻</button>
+    </div>
+    <input type="text" id="url-bar" placeholder="URLを入力または検索...">
+    <button id="private-mode-btn">
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 1C8.676 1 6 3.676 6 7v3H5c-1.1 0-2 .9-2 2v9c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-9c0-1.1-.9-2-2-2h-1V7c0-3.324-2.676-6-6-6zm0 2c2.276 0 4 1.724 4 4v3H8V7c0-2.276 1.724-4 4-4zm0 10c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2z"/>
+      </svg>
+    </button>
+    <div class="private-mode-indicator" id="private-indicator">シークレット</div>
+  </div>
+  <div id="notification"></div>
+
+  <script>
+    const api = window.electronAPI;
+
+    // ナビゲーション
+    document.getElementById('back-btn').addEventListener('click', () => {
+      api.goBack();
+    });
+
+    document.getElementById('forward-btn').addEventListener('click', () => {
+      api.goForward();
+    });
+
+    document.getElementById('reload-btn').addEventListener('click', () => {
+      api.reload();
+    });
+
+    // URL入力
+    const urlBar = document.getElementById('url-bar');
+    
+    // クリック時に全選択
+    urlBar.addEventListener('click', () => {
+      urlBar.select();
+    });
+    
+    // フォーカス時にも全選択
+    urlBar.addEventListener('focus', () => {
+      urlBar.select();
+    });
+    
+    urlBar.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        api.navigate(urlBar.value);
+      }
+    });
+
+    // 新しいタブ
+    document.getElementById('new-tab-btn').addEventListener('click', () => {
+      api.newTab('https://www.google.com');
+    });
+
+    // シークレットモード
+    document.getElementById('private-mode-btn').addEventListener('click', () => {
+      api.togglePrivateMode();
+    });
+
+    // URL更新
+    api.onUpdateUrl((url) => {
+      urlBar.value = url;
+    });
+
+    // タイトル更新
+    api.onUpdateTitle((title) => {
+      document.title = title || 'Neon Browser';
+    });
+
+    // タブ更新
+    api.onUpdateTabs((tabs) => {
+      const tabsContainer = document.getElementById('tabs');
+      // 既存のタブを削除（新規タブボタン以外）
+      const existingTabs = tabsContainer.querySelectorAll('.tab');
+      existingTabs.forEach(tab => tab.remove());
+
+      // タブを追加
+      tabs.forEach(tab => {
+        const tabElement = document.createElement('div');
+        tabElement.className = 'tab' + (tab.active ? ' active' : '');
+        tabElement.innerHTML = `
+          <div class="tab-title">${tab.title || 'New Tab'}</div>
+          <div class="tab-close" data-tab-id="${tab.id}">×</div>
+        `;
+        
+        tabElement.addEventListener('click', (e) => {
+          if (!e.target.classList.contains('tab-close')) {
+            api.switchTab(tab.id);
+          }
+        });
+
+        tabElement.querySelector('.tab-close').addEventListener('click', (e) => {
+          e.stopPropagation();
+          api.closeTab(tab.id);
+        });
+
+        tabsContainer.appendChild(tabElement);
+      });
+    });
+
+    // 通知表示
+    api.onShowNotification((message) => {
+      const notification = document.getElementById('notification');
+      notification.textContent = message;
+      notification.classList.add('show');
+      setTimeout(() => {
+        notification.classList.remove('show');
+      }, 3000);
+    });
+
+    // シークレットモード表示
+    api.onUpdatePrivateMode((isPrivate) => {
+      const indicator = document.getElementById('private-indicator');
+      const privateBtn = document.getElementById('private-mode-btn');
+      if (isPrivate) {
+        indicator.classList.add('active');
+        privateBtn.classList.add('active');
+      } else {
+        indicator.classList.remove('active');
+        privateBtn.classList.remove('active');
+      }
+    });
+  </script>
+</body>
+</html>
