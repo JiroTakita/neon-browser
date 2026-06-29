@@ -8,7 +8,7 @@
     "start": "npm run build && electron .",
     "dev": "tsc && electron .",
     "package": "npm run build && electron-builder --win portable",
-    "pack-simple": "npm run build && electron-packager . NeonBrowser --platform=win32 --arch=x64 --out=release --overwrite"
+    "pack-simple": "npm run build && electron-packager . NeonBrowser --platform=win32 --arch=x64 --out=release --overwrite --icon=build/icon.ico"
   },
   "keywords": [
     "electron",

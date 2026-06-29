@@ -1,0 +1,84 @@
+<svg width="256" height="256" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- ネオングローエフェクト -->
+    <filter id="neonGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    
+    <!-- グラデーション -->
+    <linearGradient id="neonGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#00d4ff;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#7b2cbf;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#ff006e;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- 背景 -->
+  <rect width="256" height="256" rx="50" fill="#1a1a2e"/>
+  
+  <!-- ブラウザウィンドウの外枠 -->
+  <rect x="35" y="60" width="186" height="140" rx="8" 
+        fill="none" stroke="url(#neonGradient)" stroke-width="5" 
+        filter="url(#neonGlow)"/>
+  
+  <!-- タブ（左） - ウィンドウ内側の上部 -->
+  <rect x="45" y="63" width="40" height="12" rx="3" 
+        fill="url(#neonGradient)" opacity="0.5"
+        filter="url(#neonGlow)"/>
+  
+  <!-- タブ（中央・アクティブ） - ウィンドウ内側の上部 -->
+  <rect x="85" y="63" width="50" height="12" rx="3" 
+        fill="url(#neonGradient)" 
+        filter="url(#neonGlow)"/>
+  
+  <!-- タブ（右） - ウィンドウ内側の上部 -->
+  <rect x="135" y="63" width="40" height="12" rx="3" 
+        fill="url(#neonGradient)" opacity="0.5"
+        filter="url(#neonGlow)"/>
+  
+  <!-- タブバー区切り線 -->
+  <line x1="35" y1="80" x2="221" y2="80" 
+        stroke="url(#neonGradient)" stroke-width="3" 
+        filter="url(#neonGlow)"/>
+  
+  <!-- コンテンツエリア - スケルトンスクリーン風 -->
+  <!-- 大きめのブロック（画像プレースホルダー風） -->
+  <rect x="55" y="95" width="60" height="50" rx="4"
+        fill="url(#neonGradient)" opacity="0.3"/>
+  
+  <!-- テキストライン（短い） -->
+  <rect x="125" y="100" width="75" height="8" rx="4"
+        fill="url(#neonGradient)" opacity="0.4"/>
+  
+  <!-- テキストライン（長い） -->
+  <rect x="125" y="115" width="75" height="8" rx="4"
+        fill="url(#neonGradient)" opacity="0.35"/>
+  
+  <!-- テキストライン（中） -->
+  <rect x="125" y="130" width="75" height="8" rx="4"
+        fill="url(#neonGradient)" opacity="0.3"/>
+  
+  <!-- 下部のテキストライン -->
+  <rect x="55" y="155" width="145" height="8" rx="4"
+        fill="url(#neonGradient)" opacity="0.4"/>
+  
+  <rect x="55" y="170" width="145" height="8" rx="4"
+        fill="url(#neonGradient)" opacity="0.35"/>
+  
+  <!-- キャレット（カーソル） - スケルトン内 -->
+  <line x1="128" y1="171" x2="128" y2="177" 
+        stroke="#00d4ff" stroke-width="2" 
+        stroke-linecap="round"
+        filter="url(#neonGlow)">
+    <animate attributeName="opacity" 
+             values="1;0;1" 
+             dur="1.2s" 
+             repeatCount="indefinite"/>
+  </line>
+</svg>
