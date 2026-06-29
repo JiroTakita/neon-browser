@@ -58,6 +58,7 @@ class NeonBrowser {
     this.mainWindow = new BrowserWindow({
       width: 1200,
       height: 800,
+      icon: path.join(__dirname, '../build/icon.ico'),
       webPreferences: {
         preload: path.join(__dirname, 'preload.js'),
         contextIsolation: true,
@@ -68,6 +69,15 @@ class NeonBrowser {
     });
 
     this.mainWindow.loadFile(path.join(__dirname, '../index.html'));
+    
+    // F12キーをキャプチャしてWebView DevToolsを開く
+    this.mainWindow.webContents.on('before-input-event', (event, input) => {
+      if (input.type === 'keyDown' && input.key === 'F12') {
+        event.preventDefault();
+        console.log('F12 pressed via before-input-event!');
+        this.openDevTools();
+      }
+    });
     
     // メニューバーを非表示（キーボードショートカットのみ残す）
     this.createMenu();
@@ -83,15 +93,18 @@ class NeonBrowser {
     // キーボードショートカットは別途登録
     const { globalShortcut } = require('electron');
     
-    // F12: WebView開発者ツール
-    globalShortcut.register('F12', () => {
-      this.openDevTools();
-    });
+    // F12は before-input-event で処理するのでここでは登録しない
     
     // Ctrl+Shift+I: UI開発者ツール
     globalShortcut.register('CommandOrControl+Shift+I', () => {
       if (this.mainWindow) {
-        this.mainWindow.webContents.openDevTools();
+        this.mainWindow.webContents.openDevTools({ mode: 'detach' });
+        // 開いたDevToolsのコンソールにメッセージを表示
+        setTimeout(() => {
+          this.mainWindow?.webContents.executeJavaScript(
+            'console.log("%c🛠️ UI DevTools (Ctrl+Shift+I) - ブラウザUI用", "color: #ff6600; font-size: 14px; font-weight: bold;");'
+          ).catch(() => {});
+        }, 500);
       }
     });
     
@@ -116,7 +129,13 @@ class NeonBrowser {
   private openDevTools() {
     const activeTab = this.tabs.find(tab => tab.id === this.activeTabId);
     if (activeTab && !activeTab.view.webContents.isDestroyed()) {
-      activeTab.view.webContents.openDevTools();
+      activeTab.view.webContents.openDevTools({ mode: 'detach' });
+      // 開いたDevToolsのコンソールにメッセージを表示
+      setTimeout(() => {
+        activeTab.view.webContents.executeJavaScript(
+          'console.log("%c🌐 WebView DevTools (F12) - ブラウザコンテンツ用", "color: #00ff00; font-size: 14px; font-weight: bold;");'
+        ).catch(() => {});
+      }, 500);
     }
   }
 
@@ -229,6 +248,15 @@ class NeonBrowser {
     this.mainWindow.addBrowserView(view);
     updateBounds();
     this.mainWindow.on('resize', resizeHandler);
+
+    // F12キーをキャプチャしてDevToolsを開く（このBrowserView用）
+    view.webContents.on('before-input-event', (event, input) => {
+      if (input.type === 'keyDown' && input.key === 'F12') {
+        event.preventDefault();
+        console.log('F12 pressed on BrowserView!');
+        this.openDevTools();
+      }
+    });
 
     // ナビゲーション制限を追加
     view.webContents.on('will-navigate', (event, navigationUrl) => {
