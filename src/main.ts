@@ -64,12 +64,12 @@ class NeonBrowser {
         nodeIntegration: false,
         webSecurity: true,
       },
-      autoHideMenuBar: false, // メニューバーを表示
+      autoHideMenuBar: true, // ALTキーで表示
     });
 
     this.mainWindow.loadFile(path.join(__dirname, '../index.html'));
     
-    // メニューを作成
+    // メニューバーを非表示（キーボードショートカットのみ残す）
     this.createMenu();
 
     this.setupIpcHandlers();
@@ -77,61 +77,40 @@ class NeonBrowser {
   }
 
   private createMenu() {
-    const template: any[] = [
-      {
-        label: '表示',
-        submenu: [
-          {
-            label: '開発者ツール (WebView)',
-            accelerator: 'F12',
-            click: () => {
-              this.openDevTools();
-            }
-          },
-          {
-            label: 'UI開発者ツール',
-            accelerator: 'Ctrl+Shift+I',
-            click: () => {
-              if (this.mainWindow) {
-                this.mainWindow.webContents.openDevTools();
-              }
-            }
-          },
-          { type: 'separator' },
-          {
-            label: 'リロード',
-            accelerator: 'F5',
-            click: () => {
-              this.reload();
-            }
-          }
-        ]
-      },
-      {
-        label: 'タブ',
-        submenu: [
-          {
-            label: '新しいタブ',
-            accelerator: 'Ctrl+T',
-            click: () => {
-              this.createTab('https://www.google.com');
-            }
-          },
-          {
-            label: 'タブを閉じる',
-            accelerator: 'Ctrl+W',
-            click: () => {
-              if (this.activeTabId) {
-                this.closeTab(this.activeTabId);
-              }
-            }
-          }
-        ]
+    // メニューバーを完全に非表示にする
+    Menu.setApplicationMenu(null);
+    
+    // キーボードショートカットは別途登録
+    const { globalShortcut } = require('electron');
+    
+    // F12: WebView開発者ツール
+    globalShortcut.register('F12', () => {
+      this.openDevTools();
+    });
+    
+    // Ctrl+Shift+I: UI開発者ツール
+    globalShortcut.register('CommandOrControl+Shift+I', () => {
+      if (this.mainWindow) {
+        this.mainWindow.webContents.openDevTools();
       }
-    ];
-
-    const menu = Menu.buildFromTemplate(template);
-    Menu.setApplicationMenu(menu);
+    });
+    
+    // F5: リロード
+    globalShortcut.register('F5', () => {
+      this.reload();
+    });
+    
+    // Ctrl+T: 新しいタブ
+    globalShortcut.register('CommandOrControl+T', () => {
+      this.createTab('https://www.google.com');
+    });
+    
+    // Ctrl+W: タブを閉じる
+    globalShortcut.register('CommandOrControl+W', () => {
+      if (this.activeTabId) {
+        this.closeTab(this.activeTabId);
+      }
+    });
   }
 
   private openDevTools() {

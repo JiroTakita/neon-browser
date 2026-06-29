@@ -79,6 +79,37 @@ npm start
 npm run dev
 ```
 
+## ビルド（実行ファイル作成）
+
+### ポータブル実行ファイル（.exe）の作成
+
+インストール不要で、どこでも実行できる単体のアプリケーションを作成できます：
+
+```bash
+npm run pack-simple
+```
+
+実行ファイルは `release\NeonBrowser-win32-x64\NeonBrowser.exe` に作成されます。
+
+### デスクトップショートカットの作成
+
+PowerShellで以下を実行（プロジェクトフォルダから）：
+
+```powershell
+$DesktopPath = [Environment]::GetFolderPath('Desktop')
+$WshShell = New-Object -ComObject WScript.Shell
+$Shortcut = $WshShell.CreateShortcut("$DesktopPath\Neon Browser.lnk")
+$Shortcut.TargetPath = "$PWD\release\NeonBrowser-win32-x64\NeonBrowser.exe"
+$Shortcut.WorkingDirectory = "$PWD\release\NeonBrowser-win32-x64"
+$Shortcut.Save()
+```
+
+または、簡易起動用バッチファイル（`start.bat`）を使用してショートカットを作成することもできます。
+
+### 配布方法
+
+`NeonBrowser-win32-x64` フォルダ全体をコピーして配布してください。`NeonBrowser.exe` は単体では動作しません（同じフォルダ内の resources、locales などのファイルが必要です）。
+
 ## 使い方
 
 ### 基本操作

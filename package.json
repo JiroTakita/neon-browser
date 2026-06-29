@@ -6,7 +6,9 @@
   "scripts": {
     "build": "tsc",
     "start": "npm run build && electron .",
-    "dev": "tsc && electron ."
+    "dev": "tsc && electron .",
+    "package": "npm run build && electron-builder --win portable",
+    "pack-simple": "npm run build && electron-packager . NeonBrowser --platform=win32 --arch=x64 --out=release --overwrite"
   },
   "keywords": [
     "electron",
@@ -18,6 +20,27 @@
   "devDependencies": {
     "@types/node": "^20.14.0",
     "electron": "^31.0.0",
+    "electron-builder": "^24.13.3",
+    "electron-packager": "^17.1.2",
     "typescript": "^5.4.5"
+  },
+  "build": {
+    "appId": "com.neonbrowser.app",
+    "productName": "Neon Browser",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "index.html",
+      "package.json"
+    ],
+    "win": {
+      "target": "portable",
+      "verifyUpdateCodeSignature": false
+    },
+    "portable": {
+      "artifactName": "NeonBrowser-Portable.exe"
+    }
   }
 }
