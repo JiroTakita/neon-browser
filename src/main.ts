@@ -430,14 +430,15 @@ class NeonBrowser {
       #google_ads_iframe,
       [id^="google_ads_"],
       [id^="div-gpt-ad"],
+      [class^="__"],
+      [id^="__"],
       [data-ad-slot],
       [data-ad-unit],
       [data-google-query-id],
       [data-element="overlay"],
       [data-izone],
       [data-cfasync],
-      div[id*="gfpl-"],
-      div[class*="__clb-"] {
+      div[id*="gfpl-"] {
         display: none !important;
         visibility: hidden !important;
         opacity: 0 !important;
@@ -691,6 +692,42 @@ class NeonBrowser {
                   }
                 });
               } catch (e) {}
+              
+              // __ で始まるクラス名またはIDを持つ要素を削除（広告のランダムクラス/IDパターン）
+              try {
+                const allElements = document.querySelectorAll('*[class], *[id]');
+                allElements.forEach(el => {
+                  if (removedCount >= maxRemove) return;
+                  
+                  let shouldRemove = false;
+                  
+                  // クラス名をチェック
+                  const className = el.className || '';
+                  if (typeof className === 'string') {
+                    const classes = className.split(' ');
+                    for (const cls of classes) {
+                      if (cls.startsWith('__')) {
+                        console.log('Removing element with __ class:', cls);
+                        shouldRemove = true;
+                        break;
+                      }
+                    }
+                  }
+                  
+                  // IDをチェック
+                  if (!shouldRemove && el.id && el.id.startsWith('__')) {
+                    console.log('Removing element with __ id:', el.id);
+                    shouldRemove = true;
+                  }
+                  
+                  if (shouldRemove) {
+                    el.remove();
+                    removedCount++;
+                  }
+                });
+              } catch (e) {
+                console.error('Double underscore removal error:', e);
+              }
               
               // ランダムなクラス名を持つ要素を検出（広告の可能性が高い）
               try {
