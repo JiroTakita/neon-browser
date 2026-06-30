@@ -48,6 +48,55 @@ class NeonBrowser {
       }
     });
 
+    // 広告リクエストをネットワークレベルでブロック（最も効果的）
+    ses.webRequest.onBeforeRequest({ urls: ['<all_urls>'] }, (details, callback) => {
+      const url = details.url.toLowerCase();
+      
+      // 広告関連のドメインとパスをブロック
+      const adPatterns = [
+        'doubleclick.net',
+        'googlesyndication.com',
+        'googleadservices.com',
+        'adnxs.com',
+        'advertising.com',
+        'adserver',
+        'ad.doubleclick.net',
+        '/ads/',
+        '/ad/',
+        'adform.net',
+        'rtbbtr.com',
+        'chaseherbalpasty',
+        'rtb',
+        '/lv/code.js',
+        'pubmatic.com',
+        'criteo.com',
+        'outbrain.com',
+        'taboola.com',
+        'adroll.com',
+        'adsrvr.org',
+        'contextweb.com',
+        'rubiconproject.com',
+        'openx.net',
+        'indexww.com',
+        'yieldmo.com',
+        'spotxchange.com',
+        'smartadserver.com',
+        'stiffindividual.pro',
+        'fervorsixtiesveteran.com',
+        'gigglegrowlworrisome.com',
+        'darnobedienceupscale.com',
+      ];
+      
+      const shouldBlock = adPatterns.some(pattern => url.includes(pattern));
+      
+      if (shouldBlock) {
+        console.log('🚫 Blocked ad request:', url);
+        callback({ cancel: true });
+      } else {
+        callback({ cancel: false });
+      }
+    });
+
     // シークレットモードの設定
     if (this.isPrivateMode) {
       ses.clearStorageData();
@@ -267,6 +316,21 @@ class NeonBrowser {
       }
     });
 
+    // DOM準備完了時点でCSSとスクリプトを即座に注入（最速）
+    view.webContents.on('dom-ready', () => {
+      try {
+        if (view.webContents.isDestroyed()) return;
+        
+        // CSS注入: DOM構築前に広告要素を非表示
+        this.injectAdBlockingCSS(view.webContents);
+        
+        // スクリプト注入: DOM監視を即座に開始
+        this.injectBlockingScripts(view.webContents);
+      } catch (error) {
+        console.error('DOM ready error:', error);
+      }
+    });
+
     // ナビゲーションの設定（簡素化）
     const handleDidFinishLoad = () => {
       try {
@@ -281,13 +345,6 @@ class NeonBrowser {
           this.sendToRenderer('update-title', title);
         }
         this.sendToRenderer('update-tabs', this.getTabsInfo());
-        
-        // スクリプトインジェクションは最小限に
-        setTimeout(() => {
-          if (!view.webContents.isDestroyed()) {
-            this.injectBlockingScripts(view.webContents);
-          }
-        }, 500);
       } catch (error) {
         console.error('Load finish error:', error);
       }
@@ -354,6 +411,60 @@ class NeonBrowser {
     }
   }
 
+  private injectAdBlockingCSS(webContents: any) {
+    if (!webContents || webContents.isDestroyed()) return;
+
+    // CSSで広告を即座にブロック（より具体的なセレクター）
+    webContents.insertCSS(`
+      /* 広告関連の具体的なクラス・IDのみブロック */
+      .ad-container,
+      .ad-wrapper,
+      .ad-slot,
+      .ad-unit,
+      .ads-container,
+      .advertisement,
+      .adsbygoogle,
+      .gfpl-wrapper,
+      #ad-container,
+      #ads-container,
+      #google_ads_iframe,
+      [id^="google_ads_"],
+      [id^="div-gpt-ad"],
+      [data-ad-slot],
+      [data-ad-unit],
+      [data-google-query-id],
+      [data-element="overlay"],
+      [data-izone],
+      [data-cfasync],
+      div[id*="gfpl-"],
+      div[class*="__clb-"] {
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+      }
+      
+      /* iframe広告をブロック */
+      iframe[src*="doubleclick"],
+      iframe[src*="googlesyndication"],
+      iframe[src*="googleadservices"],
+      iframe[src*="/pagead/"],
+      iframe[src*="adnxs.com"],
+      iframe[src*="advertising.com"],
+      iframe[src*="adserver"],
+      iframe[src*="stiffindividual"] {
+        display: none !important;
+      }
+      
+      /* スクロールロック解除 */
+      body, html {
+        overflow: auto !important;
+      }
+    `).catch((error: Error) => {
+      console.error('Failed to inject CSS:', error);
+    });
+  }
+
   private injectBlockingScripts(webContents: any) {
     if (!webContents || webContents.isDestroyed()) return;
 
@@ -367,36 +478,44 @@ class NeonBrowser {
           // 現在のドメインを保存
           const currentDomain = window.location.hostname;
 
-          // 広告関連のキーワードパターン
+          // 広告関連のキーワードパターン（より厳密に）
           const adPatterns = [
-            /ad[s]?[-_]?/i,
-            /banner/i,
-            /sponsor/i,
-            /promo/i,
-            /popup/i,
-            /overlay/i,
-            /advertisement/i,
-            /\bad\b/i,
-            /google[-_]?ads/i,
-            /doubleclick/i,
-            /advert/i,
-            /_ad_/i,
-            /-ad-/i,
-            /ad[-_]?container/i,
-            /ad[-_]?wrapper/i,
-            /ad[-_]?slot/i,
-            /ad[-_]?unit/i,
-            /gfpl/i,  // gfpl-wrapper などの広告コンテナ
-            /__clb[-_]/i  // __clb- 広告スクリプトクラス
+            /\bad-container\b/i,
+            /\bad-wrapper\b/i,
+            /\bad-slot\b/i,
+            /\bad-unit\b/i,
+            /\bads-container\b/i,
+            /\badvertisement\b/i,
+            /\badsbygoogle\b/i,
+            /^google[-_]?ads/i,
+            /^doubleclick/i,
+            /\bgfpl[-_]/i,
+            /__clb[-_]/i,
+            /^div-gpt-ad/i,
+          ];
+
+          // 除外パターン（正常なコンテンツを保護）
+          const excludePatterns = [
+            /head/i,
+            /header/i,
+            /thread/i,
+            /bread/i,
+            /upload/i,
+            /download/i,
+            /loading/i,
+            /ready/i,
+            /read/i,
+            /instead/i,
+            /grad/i,
+            /add/i,
+            /address/i,
+            /oadable/i,
           ];
 
           // 一般的な広告サイズ (width x height)
           const adSizes = [
             [300, 250], [728, 90], [300, 600], [160, 600],
-            [320, 50], [300, 100], [320, 100], [468, 60],
-            [234, 60], [120, 600], [120, 240], [336, 280],
-            [250, 250], [200, 200], [180, 150], [125, 125],
-            [360, 190], [380, 200], [350, 180], [900, 250] // 900x250追加
+            [320, 50], [468, 60], [336, 280], [250, 250]
           ];
 
           // 要素が広告かどうかをチェック
@@ -443,8 +562,8 @@ class NeonBrowser {
             try {
               const tagName = element.tagName.toLowerCase();
               
-              // picture, source タグは保護
-              if (['picture', 'source'].includes(tagName)) {
+              // 重要なタグは保護
+              if (['picture', 'source', 'article', 'main', 'section', 'header', 'footer', 'nav'].includes(tagName)) {
                 return false;
               }
               
@@ -457,7 +576,7 @@ class NeonBrowser {
               }
               
               // picture タグを含む要素は保護
-              if (element.querySelector('picture')) {
+              if (element.querySelector && element.querySelector('picture')) {
                 return false;
               }
               
@@ -465,11 +584,11 @@ class NeonBrowser {
               if (tagName === 'iframe') {
                 const src = element.src || '';
                 if (src.includes('doubleclick') || src.includes('googlesyndication') || 
-                    src.includes('advertising') || src.includes('/ads/') ||
-                    src.includes('adserver') || src.includes('ad.') || src.includes('.ad/') ||
-                    src.includes('rtbbtr') || src.includes('adnxs') || src.includes('adform')) {
+                    src.includes('googleadservices') || src.includes('/pagead/') ||
+                    src.includes('adnxs.com') || src.includes('adform')) {
                   return true;
                 }
+                return false; // その他のiframeは保護
               }
 
               // id と class をチェック
@@ -477,78 +596,55 @@ class NeonBrowser {
               const className = element.className || '';
               const combinedText = (id + ' ' + className).toLowerCase();
               
-              // 除外パターン（誤検出を防ぐ）
-              if (combinedText.includes('contents') || combinedText.includes('content')) {
-                return false; // contents/content を含む要素は保護
+              // 除外パターンチェック（誤検出を防ぐ）
+              for (const pattern of excludePatterns) {
+                if (pattern.test(combinedText)) {
+                  return false;
+                }
               }
               
+              // contents/content を含む要素は保護
+              if (combinedText.includes('content')) {
+                return false;
+              }
+              
+              // 広告パターンマッチング
               for (const pattern of adPatterns) {
                 if (pattern.test(combinedText)) {
                   return true;
                 }
               }
 
-              // data 属性をチェック（広告関連の属性）
-              const attrs = element.attributes;
-              for (let i = 0; i < attrs.length; i++) {
-                const attrName = attrs[i].name.toLowerCase();
-                const attrValue = attrs[i].value.toLowerCase();
-                if (attrName.startsWith('data-ad') || attrName.includes('ad-slot') || 
-                    attrName.includes('ad-unit') || attrValue.includes('advertisement') || 
-                    attrValue.includes('sponsor') || attrValue.includes('google-ad') ||
-                    attrName === 'data-cbi' || attrName === 'data-role' ||
-                    attrName === 'data-cfasync') {  // Cloudflare広告スクリプト
-                  return true;
-                }
+              // data 属性をチェック（広告関連の属性のみ）
+              if (element.hasAttribute && (
+                  element.hasAttribute('data-ad-slot') ||
+                  element.hasAttribute('data-ad-unit') ||
+                  element.hasAttribute('data-google-query-id'))) {
+                return true;
               }
               
               // scriptタグの場合、広告スクリプトかチェック
               if (tagName === 'script') {
                 const src = element.src || '';
-                if (src && (src.includes('ad') || src.includes('.com/lv/') || 
-                    src.includes('chaseherbalpasty') || src.includes('code.js'))) {
+                if (src && (src.includes('doubleclick') || 
+                    src.includes('googlesyndication') ||
+                    src.includes('googleadservices'))) {
                   return true;
                 }
               }
               
-              // scriptタグのみを含むdivは広告コンテナの可能性が高い
-              if (tagName === 'div') {
-                const children = Array.from(element.children);
-                if (children.length === 1 && children[0].tagName.toLowerCase() === 'script') {
-                  const script = children[0];
-                  const scriptSrc = script.src || '';
-                  if (scriptSrc && (scriptSrc.includes('ad') || scriptSrc.includes('.com/lv/') ||
-                      scriptSrc.includes('chaseherbalpasty'))) {
-                    return true;
-                  }
-                }
-              }
-
-              // サイズチェック（一般的な広告サイズ）
+              // サイズチェックは厳密に（典型的な広告サイズのみ）
               const width = element.offsetWidth;
               const height = element.offsetHeight;
               
-              if (width > 0 && height > 0) {
+              if (width > 0 && height > 0 && tagName === 'div') {
+                // 典型的な広告サイズにピッタリ一致する場合のみ
                 for (const [adWidth, adHeight] of adSizes) {
-                  // 正確なサイズまたは±10pxの誤差を許容
-                  if (Math.abs(width - adWidth) <= 10 && Math.abs(height - adHeight) <= 10) {
-                    // 典型的な広告サイズ（300x250, 728x90など）はz-indexなしでも削除
-                    const isTypicalAdSize = (adWidth === 300 && adHeight === 250) || 
-                                           (adWidth === 728 && adHeight === 90) ||
-                                           (adWidth === 300 && adHeight === 600) ||
-                                           (adWidth === 160 && adHeight === 600) ||
-                                           (adWidth === 320 && adHeight === 50) ||
-                                           (adWidth === 360 && adHeight === 190) ||
-                                           (adWidth === 900 && adHeight === 250);
-                    
-                    if (isTypicalAdSize) {
-                      return true;
-                    }
-                    
-                    // その他のサイズは追加条件をチェック
-                    const style = window.getComputedStyle(element);
-                    if ((style.position === 'relative' || style.position === 'absolute' || style.position === 'fixed') && 
-                        parseInt(style.zIndex) > 0) {
+                  if (width === adWidth && height === adHeight) {
+                    // data-ad 属性がある場合のみ広告と判定
+                    if (element.hasAttribute && (
+                        element.hasAttribute('data-ad-slot') ||
+                        element.hasAttribute('data-ad-unit'))) {
                       return true;
                     }
                   }
@@ -566,105 +662,134 @@ class NeonBrowser {
             try {
               // Googleページでは広告削除をスキップ
               if (currentDomain.includes('google')) {
-                console.log('Ad removal skipped on Google domain');
                 return;
               }
               
               let removedCount = 0;
-              const maxRemove = 100; // 制限を設ける
+              const maxRemove = 100; // 削除数を増やす
               
-              // すべての要素をチェック
-              const elements = document.querySelectorAll('*');
+              // data-element="overlay" を持つ要素を削除
+              try {
+                const overlays = document.querySelectorAll('[data-element="overlay"]');
+                overlays.forEach(el => {
+                  if (removedCount < maxRemove) {
+                    el.remove();
+                    removedCount++;
+                    console.log('Overlay removed: data-element="overlay"');
+                  }
+                });
+              } catch (e) {}
               
-              elements.forEach(el => {
+              // data-izone 属性を持つ要素を削除（広告の可能性が高い）
+              try {
+                const izoneElements = document.querySelectorAll('[data-izone]');
+                izoneElements.forEach(el => {
+                  if (removedCount < maxRemove) {
+                    el.remove();
+                    removedCount++;
+                    console.log('Ad removed: data-izone');
+                  }
+                });
+              } catch (e) {}
+              
+              // ランダムなクラス名を持つ要素を検出（広告の可能性が高い）
+              try {
+                const allDivs = document.querySelectorAll('div[class]');
+                allDivs.forEach(el => {
+                  if (removedCount >= maxRemove) return;
+                  
+                  const className = el.className || '';
+                  if (typeof className === 'string') {
+                    const classes = className.split(' ');
+                    
+                    // 各クラスをチェック
+                    for (const cls of classes) {
+                      // 意味のある単語を除外
+                      const meaningfulWords = /content|header|footer|main|article|section|wrapper|container|button|input|nav|title|list|item|box|text|image|link|menu|card|grid|row|col|flex|body|form|table|cell|page/i;
+                      if (meaningfulWords.test(cls)) {
+                        continue; // 意味のある単語は保護
+                      }
+                      
+                      // パターン1: 10文字以上で大文字小文字数字が混在
+                      if (cls.length >= 10) {
+                        const hasUpper = /[A-Z]/.test(cls);
+                        const hasLower = /[a-z]/.test(cls);
+                        const hasNumber = /[0-9]/.test(cls);
+                        
+                        // 大文字小文字数字が全て混在（ランダムクラスの特徴）
+                        if (hasUpper && hasLower && hasNumber) {
+                          el.remove();
+                          removedCount++;
+                          console.log('Random class removed (mixed):', cls);
+                          break;
+                        }
+                        
+                        // 大文字小文字のみ混在で12文字以上（例: zH02kz28s8CnED は14文字）
+                        if (cls.length >= 12 && hasUpper && hasLower) {
+                          el.remove();
+                          removedCount++;
+                          console.log('Random class removed (long):', cls);
+                          break;
+                        }
+                      }
+                    }
+                  }
+                });
+              } catch (e) {
+                console.error('Random class detection error:', e);
+              }
+              
+              // 具体的な広告セレクターをチェック
+              const adSelectors = [
+                '.ad-container',
+                '.ad-wrapper',
+                '.ad-slot',
+                '.ad-unit',
+                '.advertisement',
+                '.adsbygoogle',
+                '[data-ad-slot]',
+                '[data-ad-unit]',
+                '[data-cfasync]',
+                'iframe[src*="doubleclick"]',
+                'iframe[src*="googlesyndication"]',
+                'iframe[src*="googleadservices"]',
+                'iframe[src*="stiffindividual"]',
+                'div[id^="google_ads_"]',
+                'div[id^="div-gpt-ad"]',
+                'script[src*="stiffindividual"]',
+                'script[src*="fervorsixtiesveteran"]',
+              ];
+              
+              adSelectors.forEach(selector => {
                 if (removedCount >= maxRemove) return;
                 
                 try {
-                  const style = window.getComputedStyle(el);
-                  const position = style.position;
-                  const zIndex = parseInt(style.zIndex) || 0;
-                  const width = el.offsetWidth;
-                  const height = el.offsetHeight;
-                  const display = style.display;
-
-                  // オーバーレイの検出（既存のロジック）
-                  if ((position === 'fixed' || position === 'absolute') &&
-                      zIndex >= 1000 &&
-                      width > window.innerWidth * 0.9 &&
-                      height > window.innerHeight * 0.9) {
-                    el.remove();
-                    removedCount++;
-                    console.log('Overlay removed:', el);
-                    return;
-                  }
-
-                  // 広告要素の検出と削除
-                  const tagName = el.tagName.toLowerCase();
-                  
-                  // 広告スクリプトタグを削除
-                  if (tagName === 'script') {
-                    const src = el.src || '';
-                    if (src && (src.includes('ad') || src.includes('.com/lv/') || 
-                        src.includes('chaseherbalpasty') || src.includes('code.js'))) {
+                  const elements = document.querySelectorAll(selector);
+                  elements.forEach(el => {
+                    if (removedCount < maxRemove) {
                       el.remove();
                       removedCount++;
-                      console.log('Ad script removed:', el);
-                      return;
+                      console.log('Ad removed:', selector);
                     }
-                  }
-                  
-                  // iframeは慎重に判定して削除
-                  if (tagName === 'iframe') {
-                    const src = el.src || '';
-                    if (src.includes('doubleclick') || src.includes('googlesyndication') || 
-                        src.includes('advertising') || src.includes('/ads/') ||
-                        src.includes('adserver') || src.includes('ad.') || src.includes('.ad/') ||
-                        src.includes('rtbbtr') || src.includes('adnxs') || src.includes('adform')) {
-                      el.remove();
-                      removedCount++;
-                      console.log('Ad iframe removed:', el);
-                      return;
-                    }
-                  }
-                  
-                  // 通常の広告パターンマッチング
-                  if (isAd(el)) {
-                    // コンテナ要素の場合は、正常なコンテンツがないか追加チェック
-                    if (['div', 'aside', 'span'].includes(tagName)) {
-                      if (!shouldRemoveContainer(el)) {
-                        console.log('Skipped removal (has content):', el);
-                        return; // 正常なコンテンツがあるのでスキップ
-                      }
-                    }
-                    
-                    el.remove();
-                    removedCount++;
-                    console.log('Ad removed:', el);
-                    return;
-                  }
-
-                } catch (error) {
-                  // 個別の要素エラーは無視
+                  });
+                } catch (e) {
+                  // セレクターエラーは無視
                 }
               });
 
-              // bodyのスクロールロックを解除（より積極的に）
+              // bodyのスクロールロックを解除
               if (document.body) {
                 document.body.style.removeProperty('overflow');
                 document.body.style.overflow = 'auto';
-                document.body.style.removeProperty('position');
-                document.body.style.removeProperty('height');
-                document.body.style.removeProperty('width');
               }
               if (document.documentElement) {
                 document.documentElement.style.removeProperty('overflow');
                 document.documentElement.style.overflow = 'auto';
-                document.documentElement.style.removeProperty('position');
-                document.documentElement.style.removeProperty('height');
-                document.documentElement.style.removeProperty('width');
               }
 
-              console.log('Removed ' + removedCount + ' ad elements');
+              if (removedCount > 0) {
+                console.log('✓ Removed ' + removedCount + ' ad/overlay elements');
+              }
             } catch (error) {
               console.error('removeAdsAndOverlays error:', error);
             }
@@ -752,22 +877,16 @@ class NeonBrowser {
           // 初回実行
           removeAdsAndOverlays();
 
-          // DOM変更を監視（デバウンス付き）
-          let timeoutId = null;
+          // DOM変更を監視（即座に実行 - デバウンスなし）
           const observer = new MutationObserver((mutations) => {
-            // DOM変更のたびに実行（デバウンスで100ms待機）
-            if (timeoutId) clearTimeout(timeoutId);
-            timeoutId = setTimeout(() => {
-              removeAdsAndOverlays();
-            }, 100);
+            // DOM変更を検知したら即座に実行（広告が表示される前にブロック）
+            removeAdsAndOverlays();
           });
 
           if (document.body) {
             observer.observe(document.body, {
               childList: true,
               subtree: true,
-              attributes: true,  // 属性変更も監視（class/id変更を検知）
-              attributeFilter: ['class', 'id', 'style', 'src']  // 重要な属性のみ
             });
           }
 
