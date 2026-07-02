@@ -9,6 +9,7 @@ interface Tab {
   url: string;
   title: string;
   cleanup?: () => void;
+  isDirectNavigation?: boolean; // URL入力時のナビゲーションかどうか
 }
 
 class NeonBrowser {
@@ -340,6 +341,7 @@ yahoo.co.jp
     });
 
     ipcMain.on('show-link-preview', (event, url: string | null) => {
+      console.log('📨 Received link preview:', url);
       this.sendToRenderer('show-link-preview', url);
     });
 
@@ -487,6 +489,7 @@ yahoo.co.jp
         const title = view.webContents.getTitle();
         tab.url = currentUrl;
         tab.title = title;
+        tab.isDirectNavigation = false; // ロード成功後フラグをクリア
         
         if (tab.id === this.activeTabId) {
           this.sendToRenderer('update-url', currentUrl);
@@ -507,6 +510,14 @@ yahoo.co.jp
       if (errorCode === -3) return;
       
       console.error('Load failed:', errorCode, errorDescription, validatedURL);
+      
+      // URL入力時のナビゲーションのみGoogle検索フォールバック
+      if (!tab.isDirectNavigation) {
+        tab.isDirectNavigation = false; // フラグをクリア
+        return;
+      }
+      
+      tab.isDirectNavigation = false; // フラグをクリア
       
       // 既にGoogle検索またはGoogleトップの場合は再試行しない
       if (validatedURL.includes('google.com')) return;
@@ -1157,6 +1168,7 @@ yahoo.co.jp
   private navigate(url: string) {
     const activeTab = this.tabs.find(tab => tab.id === this.activeTabId);
     if (activeTab && !activeTab.view.webContents.isDestroyed()) {
+      activeTab.isDirectNavigation = true; // URL入力時のフラグを設定
       this.loadUrl(activeTab.view, url);
     }
   }
