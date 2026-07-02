@@ -33,7 +33,9 @@
     "files": [
       "dist/**/*",
       "index.html",
-      "package.json"
+      "package.json",
+      "adblock-networks.txt",
+      "adblock-whitelist.txt"
     ],
     "win": {
       "target": "portable",

@@ -1,0 +1,25 @@
+# ========================================
+# 日本語 / Japanese
+# ========================================
+# 広告除去を無効化するサイトのホワイトリスト
+# 1行に1つのドメインを記述
+# '#'で始まる行はコメント
+# 空行は無視されます
+# ★このファイルが空の場合、全サイトで広告除去が有効になります★
+# ★広告除去を無効化したいサイトのドメインを下に追加してください★
+#
+# ========================================
+# English
+# ========================================
+# Whitelist for Disabling Ad Removal
+# Write one domain per line
+# Lines starting with '#' are comments
+# Empty lines are ignored
+# ★If this file is empty, ad removal is enabled for ALL sites★
+# ★Add domains below to disable ad removal for specific sites★
+# ========================================
+
+google.com
+google.co.jp
+yahoo.com
+yahoo.co.jp

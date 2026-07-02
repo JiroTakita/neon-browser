@@ -1,0 +1,55 @@
+# ========================================
+# 日本語 / Japanese
+# ========================================
+# 広告ネットワーク遮断リスト
+# 1行に1つのドメインまたはパスパターンを記述
+# '#'で始まる行はコメント
+# 空行は無視されます
+#
+# ========================================
+# English
+# ========================================
+# Ad Network Blocking List
+# Write one domain or path pattern per line
+# Lines starting with '#' are comments
+# Empty lines are ignored
+# ========================================
+
+# Google広告 / Google Ads
+doubleclick.net
+googlesyndication.com
+googleadservices.com
+ad.doubleclick.net
+
+# 主要広告ネットワーク / Major Ad Networks
+adnxs.com
+advertising.com
+adserver
+adform.net
+pubmatic.com
+criteo.com
+outbrain.com
+taboola.com
+adroll.com
+adsrvr.org
+contextweb.com
+rubiconproject.com
+openx.net
+indexww.com
+yieldmo.com
+spotxchange.com
+smartadserver.com
+
+# 不審なドメイン / Suspicious Domains
+rtbbtr.com
+chaseherbalpasty
+rtb
+stiffindividual.pro
+fervorsixtiesveteran.com
+gigglegrowlworrisome.com
+darnobedienceupscale.com
+
+# パスパターン / Path Patterns
+/ads/
+/ad/
+/lv/code.js

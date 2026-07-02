@@ -1,6 +1,7 @@
 import { app, BrowserWindow, BrowserView, ipcMain, session, Menu } from 'electron';
 import * as path from 'path';
 import { URL } from 'url';
+import * as fs from 'fs';
 
 interface Tab {
   id: number;
@@ -16,9 +17,13 @@ class NeonBrowser {
   private activeTabId: number = 0;
   private nextTabId: number = 1;
   private isPrivateMode: boolean = false;
+  private adBlockNetworks: string[] = [];
+  private adBlockWhitelist: string[] = [];
+  private isAdBlockEnabled: boolean = true;
 
   constructor() {
     app.whenReady().then(() => {
+      this.loadAdBlockRules();
       this.createWindow();
       this.setupSession();
     });
@@ -48,46 +53,12 @@ class NeonBrowser {
       }
     });
 
-    // 広告リクエストをネットワークレベルでブロック（最も効果的）
+    // 広告リクエストをネットワークレベルでブロック（外部ファイルから読み込み）
     ses.webRequest.onBeforeRequest({ urls: ['<all_urls>'] }, (details, callback) => {
       const url = details.url.toLowerCase();
       
-      // 広告関連のドメインとパスをブロック
-      const adPatterns = [
-        'doubleclick.net',
-        'googlesyndication.com',
-        'googleadservices.com',
-        'adnxs.com',
-        'advertising.com',
-        'adserver',
-        'ad.doubleclick.net',
-        '/ads/',
-        '/ad/',
-        'adform.net',
-        'rtbbtr.com',
-        'chaseherbalpasty',
-        'rtb',
-        '/lv/code.js',
-        'pubmatic.com',
-        'criteo.com',
-        'outbrain.com',
-        'taboola.com',
-        'adroll.com',
-        'adsrvr.org',
-        'contextweb.com',
-        'rubiconproject.com',
-        'openx.net',
-        'indexww.com',
-        'yieldmo.com',
-        'spotxchange.com',
-        'smartadserver.com',
-        'stiffindividual.pro',
-        'fervorsixtiesveteran.com',
-        'gigglegrowlworrisome.com',
-        'darnobedienceupscale.com',
-      ];
-      
-      const shouldBlock = adPatterns.some(pattern => url.includes(pattern));
+      // 外部ファイルから読み込んだパターンでブロック
+      const shouldBlock = this.adBlockNetworks.some(pattern => url.includes(pattern));
       
       if (shouldBlock) {
         console.log('🚫 Blocked ad request:', url);
@@ -100,6 +71,61 @@ class NeonBrowser {
     // シークレットモードの設定
     if (this.isPrivateMode) {
       ses.clearStorageData();
+    }
+  }
+
+  private loadAdBlockRules() {
+    try {
+      // ルートディレクトリのパスを取得（開発時とパッケージ化後の両方に対応）
+      const appPath = app.getAppPath();
+      
+      // adblock-networks.txt を読み込み
+      const networksPath = path.join(appPath, 'adblock-networks.txt');
+      if (fs.existsSync(networksPath)) {
+        const content = fs.readFileSync(networksPath, 'utf-8');
+        this.adBlockNetworks = content
+          .split('\n')
+          .map(line => line.trim())
+          .filter(line => line && !line.startsWith('#'));
+        console.log(`✅ Loaded ${this.adBlockNetworks.length} ad network patterns`);
+      } else {
+        console.warn('⚠️ adblock-networks.txt not found, ad blocking disabled');
+      }
+
+      // adblock-whitelist.txt を読み込み
+      const whitelistPath = path.join(appPath, 'adblock-whitelist.txt');
+      if (fs.existsSync(whitelistPath)) {
+        const content = fs.readFileSync(whitelistPath, 'utf-8');
+        this.adBlockWhitelist = content
+          .split('\n')
+          .map(line => line.trim())
+          .filter(line => line && !line.startsWith('#'));
+        
+        if (this.adBlockWhitelist.length === 0) {
+          console.log('✅ DOM ad blocking enabled for ALL domains (empty whitelist)');
+        } else {
+          console.log(`✅ ${this.adBlockWhitelist.length} domains whitelisted (ad blocking disabled)`);
+        }
+      } else {
+        console.log('✅ DOM ad blocking enabled for ALL domains (no whitelist)');
+      }
+    } catch (error) {
+      console.error('❌ Error loading ad block rules:', error);
+    }
+  }
+
+  private shouldInjectAdBlockingScripts(url: string): boolean {
+    try {
+      // ファイルが存在しないか空の場合は全サイトで有効
+      if (this.adBlockWhitelist.length === 0) {
+        return true;
+      }
+
+      // ホワイトリストに記載されている場合は広告除去を無効化
+      const hostname = new URL(url).hostname;
+      return !this.adBlockWhitelist.some(domain => hostname.includes(domain));
+    } catch {
+      return false;
     }
   }
 
@@ -118,6 +144,19 @@ class NeonBrowser {
     });
 
     this.mainWindow.loadFile(path.join(__dirname, '../index.html'));
+    
+    // UI準備完了後に初期状態を送信
+    this.mainWindow.webContents.on('did-finish-load', () => {
+      // アクティブタブがあればそのURLで広告ブロック状態を更新
+      const activeTab = this.tabs.find(tab => tab.id === this.activeTabId);
+      if (activeTab && activeTab.url) {
+        this.updateAdBlockStatusForUrl(activeTab.url);
+      } else {
+        // アクティブタブがない場合はデフォルトで有効状態を送信
+        this.sendToRenderer('update-adblock-status', { enabled: true, reason: 'active' });
+      }
+      this.sendToRenderer('update-private-mode', this.isPrivateMode);
+    });
     
     // F12キーをキャプチャしてWebView DevToolsを開く
     this.mainWindow.webContents.on('before-input-event', (event, input) => {
@@ -221,6 +260,10 @@ class NeonBrowser {
       this.togglePrivateMode();
     });
 
+    ipcMain.on('toggle-adblock', () => {
+      this.toggleAdBlock();
+    });
+
     ipcMain.on('open-link-in-new-tab', (event, url: string) => {
       // 同一ドメインチェック
       const activeTab = this.tabs.find(tab => tab.id === this.activeTabId);
@@ -321,11 +364,19 @@ class NeonBrowser {
       try {
         if (view.webContents.isDestroyed()) return;
         
-        // CSS注入: DOM構築前に広告要素を非表示
-        this.injectAdBlockingCSS(view.webContents);
+        const currentUrl = view.webContents.getURL();
         
-        // スクリプト注入: DOM監視を即座に開始
-        this.injectBlockingScripts(view.webContents);
+        // ドメインリストに基づいてDOM除去を実行
+        if (this.shouldInjectAdBlockingScripts(currentUrl)) {
+          // CSS注入: DOM構築前に広告要素を非表示
+          this.injectAdBlockingCSS(view.webContents);
+          
+          // スクリプト注入: DOM監視を即座に開始
+          this.injectBlockingScripts(view.webContents);
+          console.log('✅ Ad blocking scripts injected for:', currentUrl);
+        } else {
+          console.log('⏭️ Skipping ad blocking for:', currentUrl);
+        }
       } catch (error) {
         console.error('DOM ready error:', error);
       }
@@ -343,6 +394,8 @@ class NeonBrowser {
         if (tab.id === this.activeTabId) {
           this.sendToRenderer('update-url', currentUrl);
           this.sendToRenderer('update-title', title);
+          // 現在のURLでの広告ブロック状態を更新
+          this.updateAdBlockStatusForUrl(currentUrl);
         }
         this.sendToRenderer('update-tabs', this.getTabsInfo());
       } catch (error) {
@@ -1020,6 +1073,8 @@ class NeonBrowser {
       this.sendToRenderer('update-url', newTab.url);
       this.sendToRenderer('update-title', newTab.title);
       this.sendToRenderer('update-tabs', this.getTabsInfo());
+      // タブ切り替え時に現在のURLでの広告ブロック状態を更新
+      this.updateAdBlockStatusForUrl(newTab.url);
     } catch (error) {
       console.error('Error switching tab:', error);
     }
@@ -1079,6 +1134,93 @@ class NeonBrowser {
       session.defaultSession.clearStorageData();
     }
     this.sendToRenderer('update-private-mode', this.isPrivateMode);
+  }
+
+  private toggleAdBlock() {
+    const activeTab = this.tabs.find(tab => tab.id === this.activeTabId);
+    if (!activeTab || !activeTab.url) {
+      this.showNotification('アクティブなタブがありません');
+      return;
+    }
+
+    try {
+      const hostname = new URL(activeTab.url).hostname;
+      const isCurrentlyWhitelisted = this.adBlockWhitelist.some(domain => hostname.includes(domain));
+
+      if (isCurrentlyWhitelisted) {
+        // ホワイトリストから削除（広告ブロックを有効化）
+        this.adBlockWhitelist = this.adBlockWhitelist.filter(domain => !hostname.includes(domain));
+        this.saveWhitelist();
+        this.showNotification(`${hostname} で広告ブロックを有効化しました`);
+        console.log(`✅ Removed ${hostname} from whitelist`);
+      } else {
+        // ホワイトリストに追加（広告ブロックを無効化）
+        this.adBlockWhitelist.push(hostname);
+        this.saveWhitelist();
+        this.showNotification(`${hostname} で広告ブロックを無効化しました`);
+        console.log(`➕ Added ${hostname} to whitelist`);
+      }
+
+      // 状態を更新してページをリロード
+      this.updateAdBlockStatusForUrl(activeTab.url);
+      this.reload();
+    } catch (error) {
+      console.error('Error toggling adblock:', error);
+      this.showNotification('エラーが発生しました');
+    }
+  }
+
+  private saveWhitelist() {
+    try {
+      const appPath = app.getAppPath();
+      const whitelistPath = path.join(appPath, 'adblock-whitelist.txt');
+      
+      // ヘッダーコメントを保持
+      const header = `# ========================================
+# 日本語 / Japanese
+# ========================================
+# 広告除去を無効化するサイトのホワイトリスト
+# 1行に1つのドメインを記述
+# '#'で始まる行はコメント
+# 空行は無視されます
+# ★このファイルが空の場合、全サイトで広告除去が有効になります★
+# ★広告除去を無効化したいサイトのドメインを下に追加してください★
+#
+# ========================================
+# English
+# ========================================
+# Whitelist for Disabling Ad Removal
+# Write one domain per line
+# Lines starting with '#' are comments
+# Empty lines are ignored
+# ★If this file is empty, ad removal is enabled for ALL sites★
+# ★Add domains below to disable ad removal for specific sites★
+# ========================================
+
+`;
+      
+      const content = header + this.adBlockWhitelist.join('\n');
+      fs.writeFileSync(whitelistPath, content, 'utf-8');
+      console.log('✅ Whitelist saved');
+    } catch (error) {
+      console.error('❌ Error saving whitelist:', error);
+    }
+  }
+
+  private updateAdBlockStatusForUrl(url: string) {
+    // ホワイトリストチェック
+    try {
+      const hostname = new URL(url).hostname;
+      const isWhitelisted = this.adBlockWhitelist.some(domain => hostname.includes(domain));
+      
+      if (isWhitelisted) {
+        this.sendToRenderer('update-adblock-status', { enabled: false, reason: 'whitelist' });
+      } else {
+        this.sendToRenderer('update-adblock-status', { enabled: true, reason: 'active' });
+      }
+    } catch {
+      this.sendToRenderer('update-adblock-status', { enabled: true, reason: 'active' });
+    }
   }
 
   private showNotification(message: string) {

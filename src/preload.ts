@@ -9,6 +9,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   closeTab: (tabId: number) => ipcRenderer.send('close-tab', tabId),
   switchTab: (tabId: number) => ipcRenderer.send('switch-tab', tabId),
   togglePrivateMode: () => ipcRenderer.send('toggle-private-mode'),
+  toggleAdBlock: () => ipcRenderer.send('toggle-adblock'),
   
   onUpdateUrl: (callback: (url: string) => void) => {
     ipcRenderer.on('update-url', (event, url) => callback(url));
@@ -24,5 +25,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   onUpdatePrivateMode: (callback: (isPrivate: boolean) => void) => {
     ipcRenderer.on('update-private-mode', (event, isPrivate) => callback(isPrivate));
+  },
+  onUpdateAdBlockStatus: (callback: (enabled: boolean) => void) => {
+    ipcRenderer.on('update-adblock-status', (event, enabled) => callback(enabled));
   },
 });
