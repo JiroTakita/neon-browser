@@ -815,6 +815,46 @@ yahoo.co.jp
               let removedCount = 0;
               const maxRemove = 100; // 削除数を増やす
               
+              // z-indexが高く画面の90%以上を覆うオーバーレイを削除
+              try {
+                const viewportWidth = window.innerWidth;
+                const viewportHeight = window.innerHeight;
+                const allElements = document.querySelectorAll('*');
+                
+                allElements.forEach(el => {
+                  if (removedCount >= maxRemove) return;
+                  
+                  try {
+                    const style = window.getComputedStyle(el);
+                    const zIndex = parseInt(style.zIndex, 10);
+                    
+                    // z-indexが1000以上の要素をチェック
+                    if (zIndex >= 1000) {
+                      const rect = el.getBoundingClientRect();
+                      const elementArea = rect.width * rect.height;
+                      const viewportArea = viewportWidth * viewportHeight;
+                      
+                      // 画面の90%以上を覆っている場合
+                      if (elementArea >= viewportArea * 0.9) {
+                        // 重要な要素（動画プレイヤーなど）を保護
+                        const tagName = el.tagName.toLowerCase();
+                        if (tagName === 'video' || tagName === 'main' || tagName === 'article') {
+                          return;
+                        }
+                        
+                        el.remove();
+                        removedCount++;
+                        console.log('Fullscreen overlay removed: z-index=' + zIndex + ', coverage=' + Math.round((elementArea / viewportArea) * 100) + '%');
+                      }
+                    }
+                  } catch (e) {
+                    // スタイル取得エラーは無視
+                  }
+                });
+              } catch (e) {
+                console.error('Overlay detection error:', e);
+              }
+              
               // data-element="overlay" を持つ要素を削除
               try {
                 const overlays = document.querySelectorAll('[data-element="overlay"]');
