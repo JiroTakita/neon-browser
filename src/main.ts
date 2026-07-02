@@ -68,10 +68,7 @@ class NeonBrowser {
       }
     });
 
-    // シークレットモードの設定
-    if (this.isPrivateMode) {
-      ses.clearStorageData();
-    }
+    // シークレットモード時は各タブがinMemoryセッションを使用（データ保存なし）
   }
 
   private loadAdBlockRules() {
@@ -238,7 +235,6 @@ yahoo.co.jp
         // アクティブタブがない場合はデフォルトで有効状態を送信
         this.sendToRenderer('update-adblock-status', { enabled: true, reason: 'active' });
       }
-      this.sendToRenderer('update-private-mode', this.isPrivateMode);
     });
     
     // F12キーをキャプチャしてWebView DevToolsを開く
@@ -339,10 +335,6 @@ yahoo.co.jp
       this.switchTab(tabId);
     });
 
-    ipcMain.on('toggle-private-mode', () => {
-      this.togglePrivateMode();
-    });
-
     ipcMain.on('toggle-adblock', () => {
       this.toggleAdBlock();
     });
@@ -372,6 +364,7 @@ yahoo.co.jp
       return;
     }
 
+    // シークレットモード: データを一切保存しないinMemoryセッション
     const view = new BrowserView({
       webPreferences: {
         preload: path.join(__dirname, 'webview-preload.js'),
@@ -379,6 +372,7 @@ yahoo.co.jp
         nodeIntegration: false,
         javascript: true,
         webSecurity: true,
+        partition: this.isPrivateMode ? 'private' : 'persist:default',
       },
     });
 
@@ -423,6 +417,22 @@ yahoo.co.jp
     this.mainWindow.addBrowserView(view);
     updateBounds();
     this.mainWindow.on('resize', resizeHandler);
+
+    // シークレットモードの場合、このセッションにも広告ブロックを設定
+    if (this.isPrivateMode) {
+      const privateSession = view.webContents.session;
+      privateSession.webRequest.onBeforeRequest({ urls: ['<all_urls>'] }, (details, callback) => {
+        const url = details.url.toLowerCase();
+        const shouldBlock = this.adBlockNetworks.some(pattern => url.includes(pattern));
+        
+        if (shouldBlock) {
+          console.log('🚫 Blocked ad request (private):', url);
+          callback({ cancel: true });
+        } else {
+          callback({ cancel: false });
+        }
+      });
+    }
 
     // F12キーをキャプチャしてDevToolsを開く（このBrowserView用）
     view.webContents.on('before-input-event', (event, input) => {
@@ -1211,13 +1221,7 @@ yahoo.co.jp
     }));
   }
 
-  private togglePrivateMode() {
-    this.isPrivateMode = !this.isPrivateMode;
-    if (this.isPrivateMode) {
-      session.defaultSession.clearStorageData();
-    }
-    this.sendToRenderer('update-private-mode', this.isPrivateMode);
-  }
+
 
   private toggleAdBlock() {
     const activeTab = this.tabs.find(tab => tab.id === this.activeTabId);
