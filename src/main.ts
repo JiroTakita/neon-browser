@@ -138,50 +138,10 @@ class NeonBrowser {
       }
     }
 
-    // 2. テンプレートもない場合はデフォルト内容で作成
-    const defaultContent = `# ========================================
-# 日本語 / Japanese
-# ========================================
-# 広告ネットワーク遮断リスト
-# 1行に1つのドメインまたはパスパターンを記述
-# '#'で始まる行はコメント
-# 空行は無視されます
-#
-# ========================================
-# English
-# ========================================
-# Ad Network Blocking List
-# Write one domain or path pattern per line
-# Lines starting with '#' are comments
-# Empty lines are ignored
-# ========================================
-
-# Google広告 / Google Ads
-# 例 / Examples:
-# doubleclick.net
-# googlesyndication.com
-# googleadservices.com
-
-# 主要広告ネットワーク / Major Ad Networks
-# 例 / Examples:
-# adnxs.com
-# criteo.com
-# outbrain.com
-# taboola.com
-
-# 不審なドメイン / Suspicious Domains
-# 例 / Examples:
-# suspicious-domain.com
-
-# パスパターン / Path Patterns
-# 例 / Examples:
-# /ads/
-# /ad/
-`;
-
+    // 2. テンプレートもない場合は空ファイルを作成
     try {
-      fs.writeFileSync(networksPath, defaultContent, 'utf-8');
-      console.log('✅ Created default adblock-networks.txt');
+      fs.writeFileSync(networksPath, '', 'utf-8');
+      console.log('✅ Created empty adblock-networks.txt');
     } catch (error) {
       console.error('❌ Failed to create adblock-networks.txt:', error);
     }
