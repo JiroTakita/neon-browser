@@ -293,7 +293,13 @@
 
     // URL更新
     api.onUpdateUrl((url) => {
-      urlBar.value = url;
+      // URLデコード（日本語などを表示可能に）
+      try {
+        urlBar.value = decodeURI(url);
+      } catch (e) {
+        // デコード失敗時は元のURLを表示
+        urlBar.value = url;
+      }
     });
 
     // タイトル更新

@@ -2,6 +2,19 @@ import { ipcRenderer } from 'electron';
 
 // WebView用のpreload - リンククリックとホバーを処理
 
+// リンクのカーソルを強制的にポインターに（DOMContentLoaded後）
+function injectCursorStyle() {
+  const style = document.createElement('style');
+  style.textContent = 'a, a:hover { cursor: pointer !important; }';
+  document.head.appendChild(style);
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', injectCursorStyle);
+} else {
+  injectCursorStyle();
+}
+
 // リンクプレビュー要素を作成
 let linkPreviewElement: HTMLDivElement | null = null;
 
