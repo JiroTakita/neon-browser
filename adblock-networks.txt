@@ -16,40 +16,23 @@
 # ========================================
 
 # Google広告 / Google Ads
-doubleclick.net
-googlesyndication.com
-googleadservices.com
-ad.doubleclick.net
+# 例 / Examples:
+# doubleclick.net
+# googlesyndication.com
+# googleadservices.com
 
 # 主要広告ネットワーク / Major Ad Networks
-adnxs.com
-advertising.com
-adserver
-adform.net
-pubmatic.com
-criteo.com
-outbrain.com
-taboola.com
-adroll.com
-adsrvr.org
-contextweb.com
-rubiconproject.com
-openx.net
-indexww.com
-yieldmo.com
-spotxchange.com
-smartadserver.com
+# 例 / Examples:
+# adnxs.com
+# criteo.com
+# outbrain.com
+# taboola.com
 
 # 不審なドメイン / Suspicious Domains
-rtbbtr.com
-chaseherbalpasty
-rtb
-stiffindividual.pro
-fervorsixtiesveteran.com
-gigglegrowlworrisome.com
-darnobedienceupscale.com
+# 例 / Examples:
+# suspicious-domain.com
 
 # パスパターン / Path Patterns
-/ads/
-/ad/
-/lv/code.js
+# 例 / Examples:
+# /ads/
+# /ad/
