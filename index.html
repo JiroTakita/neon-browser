@@ -168,20 +168,6 @@
       transform: translateY(0);
     }
 
-    .private-mode-indicator {
-      background: #a6e3a1;
-      color: #1e1e2e;
-      padding: 4px 12px;
-      border-radius: 4px;
-      font-size: 12px;
-      font-weight: 600;
-      display: none;
-    }
-
-    .private-mode-indicator.active {
-      display: block;
-    }
-
     .nav-buttons {
       display: flex;
       gap: 4px;
@@ -205,13 +191,13 @@
     }
     
     #private-mode-btn svg {
-      fill: #cdd6f4;
+      fill: #a6e3a1;
       width: 18px;
       height: 18px;
     }
     
-    #private-mode-btn.active svg {
-      fill: #a6e3a1;
+    #private-mode-btn.inactive svg {
+      fill: #f38ba8;
     }
     
     #adblock-btn {
@@ -249,12 +235,11 @@
         <path d="M12 2L4 5v6.09c0 5.05 3.41 9.76 8 10.91 4.59-1.15 8-5.86 8-10.91V5l-8-3zm0 2.18l6 2.25v4.66c0 4.11-2.77 7.94-6 8.89-3.23-.95-6-4.78-6-8.89V6.43l6-2.25zm-1 4.82v8h2V9h-2z"/>
       </svg>
     </button>
-    <button id="private-mode-btn" title="シークレットモード: 無効&#10;クリックで有効化">
+    <button id="private-mode-btn" title="シークレットモード: 有効&#10;クリックで無効化">
       <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
         <path d="M12 1C8.676 1 6 3.676 6 7v3H5c-1.1 0-2 .9-2 2v9c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-9c0-1.1-.9-2-2-2h-1V7c0-3.324-2.676-6-6-6zm0 2c2.276 0 4 1.724 4 4v3H8V7c0-2.276 1.724-4 4-4zm0 10c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2z"/>
       </svg>
     </button>
-    <div class="private-mode-indicator" id="private-indicator">シークレット</div>
   </div>
   <div id="notification"></div>
 
@@ -361,15 +346,12 @@
 
     // シークレットモード表示
     api.onUpdatePrivateMode((isPrivate) => {
-      const indicator = document.getElementById('private-indicator');
       const privateBtn = document.getElementById('private-mode-btn');
       if (isPrivate) {
-        indicator.classList.add('active');
-        privateBtn.classList.add('active');
+        privateBtn.classList.remove('inactive');
         privateBtn.title = 'シークレットモード: 有効\nクリックで無効化';
       } else {
-        indicator.classList.remove('active');
-        privateBtn.classList.remove('active');
+        privateBtn.classList.add('inactive');
         privateBtn.title = 'シークレットモード: 無効\nクリックで有効化';
       }
     });

@@ -16,7 +16,7 @@ class NeonBrowser {
   private tabs: Tab[] = [];
   private activeTabId: number = 0;
   private nextTabId: number = 1;
-  private isPrivateMode: boolean = false;
+  private isPrivateMode: boolean = true;
   private adBlockNetworks: string[] = [];
   private adBlockWhitelist: string[] = [];
   private isAdBlockEnabled: boolean = true;
