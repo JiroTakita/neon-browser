@@ -5,3 +5,7 @@ release/
 .DS_Store
 *.bat
 *.zip
+
+# 個人的な広告ブロック設定（ローカルのみ）
+adblock-networks.txt
+adblock-whitelist.txt

@@ -19,7 +19,7 @@
 # ★Add domains below to disable ad removal for specific sites★
 # ========================================
 
-google.com
-google.co.jp
-yahoo.com
-yahoo.co.jp
+# 検索エンジン（デフォルトで広告を許可） / Search Engines (ads allowed by default)
+# 例 / Examples:
+# google.com
+# yahoo.co.jp
