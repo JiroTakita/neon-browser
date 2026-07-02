@@ -168,6 +168,30 @@
       transform: translateY(0);
     }
 
+    #link-preview {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      background: #313244;
+      color: #cdd6f4;
+      padding: 6px 12px;
+      border-top-right-radius: 4px;
+      font-size: 12px;
+      font-family: 'Consolas', 'Courier New', monospace;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s;
+      z-index: 1000;
+      max-width: 50%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    #link-preview.show {
+      opacity: 1;
+    }
+
     .nav-buttons {
       display: flex;
       gap: 4px;
@@ -315,6 +339,17 @@
       setTimeout(() => {
         notification.classList.remove('show');
       }, 3000);
+    });
+
+    // リンクプレビュー表示
+    api.onShowLinkPreview((url) => {
+      const preview = document.getElementById('link-preview');
+      if (url) {
+        preview.textContent = url;
+        preview.classList.add('show');
+      } else {
+        preview.classList.remove('show');
+      }
     });
 
     // 広告ブロック状態更新

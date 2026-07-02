@@ -25,4 +25,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onUpdateAdBlockStatus: (callback: (enabled: boolean) => void) => {
     ipcRenderer.on('update-adblock-status', (event, enabled) => callback(enabled));
   },
+  onShowLinkPreview: (callback: (url: string | null) => void) => {
+    ipcRenderer.on('show-link-preview', (event, url) => callback(url));
+  },
 });

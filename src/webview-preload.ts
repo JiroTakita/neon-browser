@@ -1,7 +1,22 @@
 import { ipcRenderer } from 'electron';
 
-// WebView用のpreload - リンククリックを処理
+// WebView用のpreload - リンククリックとホバーを処理
 document.addEventListener('DOMContentLoaded', () => {
+  // リンクホバー時にURLを表示
+  document.addEventListener('mouseover', (e: MouseEvent) => {
+    const target = (e.target as HTMLElement).closest('a') as HTMLAnchorElement;
+    if (target && target.href) {
+      ipcRenderer.send('show-link-preview', target.href);
+    }
+  }, true);
+
+  document.addEventListener('mouseout', (e: MouseEvent) => {
+    const target = (e.target as HTMLElement).closest('a') as HTMLAnchorElement;
+    if (target && target.href) {
+      ipcRenderer.send('show-link-preview', null);
+    }
+  }, true);
+
   // Ctrl+クリックと中クリックを処理
   document.addEventListener('click', (e: MouseEvent) => {
     const target = (e.target as HTMLElement).closest('a') as HTMLAnchorElement;

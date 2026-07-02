@@ -339,6 +339,10 @@ yahoo.co.jp
       this.toggleAdBlock();
     });
 
+    ipcMain.on('show-link-preview', (event, url: string | null) => {
+      this.sendToRenderer('show-link-preview', url);
+    });
+
     ipcMain.on('open-link-in-new-tab', (event, url: string) => {
       // 同一ドメインチェック
       const activeTab = this.tabs.find(tab => tab.id === this.activeTabId);
