@@ -79,8 +79,10 @@ class NeonBrowser {
       // ルートディレクトリのパスを取得（開発時とパッケージ化後の両方に対応）
       const appPath = app.getAppPath();
       
-      // adblock-networks.txt を読み込み
+      // adblock-networks.txt の初期化と読み込み
       const networksPath = path.join(appPath, 'adblock-networks.txt');
+      this.initializeNetworksFile(networksPath, appPath);
+      
       if (fs.existsSync(networksPath)) {
         const content = fs.readFileSync(networksPath, 'utf-8');
         this.adBlockNetworks = content
@@ -92,8 +94,10 @@ class NeonBrowser {
         console.warn('⚠️ adblock-networks.txt not found, ad blocking disabled');
       }
 
-      // adblock-whitelist.txt を読み込み
+      // adblock-whitelist.txt の初期化と読み込み
       const whitelistPath = path.join(appPath, 'adblock-whitelist.txt');
+      this.initializeWhitelistFile(whitelistPath);
+      
       if (fs.existsSync(whitelistPath)) {
         const content = fs.readFileSync(whitelistPath, 'utf-8');
         this.adBlockWhitelist = content
@@ -111,6 +115,125 @@ class NeonBrowser {
       }
     } catch (error) {
       console.error('❌ Error loading ad block rules:', error);
+    }
+  }
+
+  private initializeNetworksFile(networksPath: string, appPath: string) {
+    // ファイルが既に存在する場合は何もしない
+    if (fs.existsSync(networksPath)) {
+      return;
+    }
+
+    console.log('📝 adblock-networks.txt not found, initializing...');
+
+    // 1. テンプレートファイルを探す
+    const templatePath = path.join(appPath, 'adblock-networks.txt.template');
+    if (fs.existsSync(templatePath)) {
+      try {
+        fs.copyFileSync(templatePath, networksPath);
+        console.log('✅ Created adblock-networks.txt from template');
+        return;
+      } catch (error) {
+        console.error('❌ Failed to copy template:', error);
+      }
+    }
+
+    // 2. テンプレートもない場合はデフォルト内容で作成
+    const defaultContent = `# ========================================
+# 日本語 / Japanese
+# ========================================
+# 広告ネットワーク遮断リスト
+# 1行に1つのドメインまたはパスパターンを記述
+# '#'で始まる行はコメント
+# 空行は無視されます
+#
+# ========================================
+# English
+# ========================================
+# Ad Network Blocking List
+# Write one domain or path pattern per line
+# Lines starting with '#' are comments
+# Empty lines are ignored
+# ========================================
+
+# Google広告 / Google Ads
+# 例 / Examples:
+# doubleclick.net
+# googlesyndication.com
+# googleadservices.com
+
+# 主要広告ネットワーク / Major Ad Networks
+# 例 / Examples:
+# adnxs.com
+# criteo.com
+# outbrain.com
+# taboola.com
+
+# 不審なドメイン / Suspicious Domains
+# 例 / Examples:
+# suspicious-domain.com
+
+# パスパターン / Path Patterns
+# 例 / Examples:
+# /ads/
+# /ad/
+`;
+
+    try {
+      fs.writeFileSync(networksPath, defaultContent, 'utf-8');
+      console.log('✅ Created default adblock-networks.txt');
+    } catch (error) {
+      console.error('❌ Failed to create adblock-networks.txt:', error);
+    }
+  }
+
+  private initializeWhitelistFile(whitelistPath: string) {
+    // ファイルが既に存在する場合は何もしない
+    if (fs.existsSync(whitelistPath)) {
+      return;
+    }
+
+    console.log('📝 adblock-whitelist.txt not found, creating...');
+
+    const defaultContent = `# ========================================
+# 日本語 / Japanese
+# ========================================
+# 広告除去を無効化するサイトのホワイトリスト
+# 1行に1つのドメインを記述
+# '#'で始まる行はコメント
+# 空行は無視されます
+# ★このファイルが空の場合、全サイトで広告除去が有効になります★
+# ★広告除去を無効化したいサイトのドメインを下に追加してください★
+#
+# ========================================
+# English
+# ========================================
+# Whitelist for Disabling Ad Removal
+# Write one domain per line
+# Lines starting with '#' are comments
+# Empty lines are ignored
+# ★If this file is empty, ad removal is enabled for ALL sites★
+# ★Add domains below to disable ad removal for specific sites★
+# ========================================
+
+# 検索エンジン（デフォルトで広告を許可） / Search Engines (ads allowed by default)
+google.com
+google.co.jp
+yahoo.com
+yahoo.co.jp
+
+# その他、広告除去を無効化したいサイトを追加してください
+# Add other sites where you want to disable ad removal
+# 例 / Example:
+# example.com
+# trustedsite.net
+`;
+
+    try {
+      fs.writeFileSync(whitelistPath, defaultContent, 'utf-8');
+      console.log('✅ Created default adblock-whitelist.txt');
+    } catch (error) {
+      console.error('❌ Failed to create adblock-whitelist.txt:', error);
     }
   }
 
